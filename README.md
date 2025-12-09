@@ -1,2 +1,2 @@
 # spectral-methods
-A collection of spectral methods implemented in Python
+A collection of spectral methods implemented in Python. WIP.
