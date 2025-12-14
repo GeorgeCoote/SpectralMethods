@@ -103,7 +103,7 @@ class Config:
 config = Config() # init config
 
 #general helper functions 
-def _generate_matrix(matrix:Callable[[int, int], float], m, n, z = 0) -> np.array:
+def _generate_matrix(matrix : Callable[[int, int], float], m : int, n : int, z : complex = 0) -> np.array:
     '''
     Method to convert a matrix as a callable into a numpy array by vectorizing the matrix. Cheaper than creating a list and then converting to numpy. Not intended to be called directly. 
     '''
@@ -117,7 +117,7 @@ def _generate_matrix(matrix:Callable[[int, int], float], m, n, z = 0) -> np.arra
     
 # CompInvg
 
-def _input_validation_compInvg(n: int, y: float, g:Callable[[float], float]) -> None:
+def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float]) -> None:
     '''
     Input validation for CompInvg_slow and CompInvg. Not intended to be called directly. 
     '''
@@ -130,7 +130,7 @@ def _input_validation_compInvg(n: int, y: float, g:Callable[[float], float]) -> 
     if abs(g(0.0)) > DEFAULT_zero_tolerance:
         raise ValueError("We must have g(0) = 0, with g our resolvent bound. This g(0) falls out of floating point tolerance.")
 
-def CompInvg_slow(n: int, y: float, g:Callable[[float], float], max_iter:int = config.max_iter, init_guess:int = config.init_guess) -> Fraction:
+def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : int = config.max_iter, init_guess : int = config.init_guess) -> Fraction:
     '''
     Approximate g^(-1)(y) using a discrete mesh of size 1/n. Specifically, we find the least k such that g(k/n) > y and hence give an approximation to g^(-1)(y) to precision 1/n. 
 
@@ -184,7 +184,7 @@ def CompInvg_slow(n: int, y: float, g:Callable[[float], float], max_iter:int = c
             return Fraction(k, n) # using fraction to avoid floating point errors
 
 #DistSpec 
-def DistSpec_slow(matrix:Callable[[int, int], complex], n:int, z:complex, f:Callable[[int], int], max_iter:int = config.max_iter) -> Fraction:
+def DistSpec_slow(matrix : Callable[[int, int], complex], n : int, z : complex, f : Callable[[int], int], max_iter : int = config.max_iter) -> Fraction:
     '''
     Approximate norm(R(z, A))^(-1) with mesh size 1/n given dispersion f
     
@@ -254,7 +254,7 @@ def DistSpec_slow(matrix:Callable[[int, int], complex], n:int, z:complex, f:Call
     return Fraction(l, n) # using fraction to avoid floating point errors
 
 # grid generation 
-def _input_validation_generate_grid(n:int) -> None:
+def _input_validation_generate_grid(n : int) -> None:
     '''
     Input validation for generate_grid and generate_grid_slow. Not intended to be called directly. 
     '''
@@ -263,7 +263,7 @@ def _input_validation_generate_grid(n:int) -> None:
     if n <= 0:
         raise ValueError("Grid size n is non-positive")
 
-def generate_grid_slow(n:int) -> list[complex]:
+def generate_grid_slow(n : int) -> list[complex]:
     '''
     Generates 1/n (Z + i Z) \cap B_n(0) = Grid(n) as a list of complexes . 
     
@@ -294,7 +294,7 @@ def generate_grid_slow(n:int) -> list[complex]:
     # return 
     return [complex(x, y)/n for x in range(-n*n, n*n + 1) for y in range(-n*n, n*n + 1) if x*x + y*y <= n**4]
 
-def generate_grid(n:int) -> list[complex]:
+def generate_grid(n : int) -> list[complex]:
     '''
     Generates 1/n (Z + i Z) \cap B_n(0) = Grid(n) as a list of complexes.
     
@@ -335,4 +335,5 @@ def generate_grid(n:int) -> list[complex]:
     return grid
 
 # CompSpecUB
+
 
