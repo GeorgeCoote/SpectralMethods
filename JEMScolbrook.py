@@ -117,7 +117,7 @@ def _generate_matrix(matrix : Callable[[int, int], float], m : int, n : int, z :
     
 # CompInvg
 
-def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float]) -> None:
+def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float], init_guess : int) -> None:
     '''
     Input validation for CompInvg_slow and CompInvg. Not intended to be called directly. 
     '''
@@ -127,7 +127,7 @@ def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float])
         raise ValueError("Precision n must be positive")  
     if y < 0:
         raise ValueError("y in g^(-1)(y) must be non-negative") 
-    if abs(g(0.0)) > DEFAULT_zero_tolerance:
+    if abs(g(0.0)) > init_guess:
         raise ValueError("We must have g(0) = 0, with g our resolvent bound. This g(0) falls out of floating point tolerance.")
 
 def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : int = config.max_iter, init_guess : int = config.init_guess) -> Fraction:
@@ -171,7 +171,7 @@ def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : i
     O(n) assuming inexpensive g, does n iterations
     '''
     # input validation 
-    _input_validation_compInvg(n, y, g)
+    _input_validation_compInvg(n, y, g, init_guess)
     # We first identify a 1-wide interval within which g first exceeds y
     j = init_guess
     while g(j + 1) <= y and j < max_iter:
@@ -335,5 +335,6 @@ def generate_grid(n : int) -> list[complex]:
     return grid
 
 # CompSpecUB
+
 
 
