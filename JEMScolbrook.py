@@ -45,7 +45,7 @@ class JEMScolbrook:
         '''
         Approximate g^(-1)(y) using a discrete mesh of size 1/n. Specifically, we find the least k such that g(k/n) > y and hence give an approximation to g^(-1)(y) to precision 1/n. 
 
-        _slow: Brute force method, does not use narrowing window search method (e.g. binary search). 
+        _slow: Brute force method, does not use binary search or any other clever search. 
         
         Parameters
         -------------
@@ -248,3 +248,4 @@ class JEMScolbrook:
         return grid
     
     # CompSpecUB
+
