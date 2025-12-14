@@ -79,16 +79,19 @@ class Config:
         '''
         for key, value in kwargs.items():
             if hasattr(self, key):
-                if type_check(key, value):
+                if self.type_check(key, value):
                     setattr(self, key, value)
                 else:
-                    raise ValueError(f"{type(key)} not an allowed type for {key}. Allowed types are {self.allowed_types(key)}")
+                    raise ValueError(f"{type(value)} not an allowed type for {key}. Allowed types are {self.allowed_types[key]}")
             else:
                 raise ValueError(f"Unknown parameter: {key}")
+                
     def reset(self) -> None:
         '''Reset module constants to default value'''
         self.__init__()
+        
     def get_values(self) -> dict:
+        '''Get current values of module constants'''
         return {
             'max_iter': self.max_iter,
             'zero_tolerance': self.zero_tolerance,
@@ -98,7 +101,10 @@ class Config:
         }
     
     def type_check(self, key, value):
-        return type(value) in self.allowed_types(key)
+        '''
+        Type checker for module constants. Not intended to be called directly
+        '''
+        return type(value) in self.allowed_types[key]
 
 config = Config() # init config
 
@@ -109,7 +115,7 @@ def _generate_matrix(matrix : Callable[[int, int], float], m : int, n : int, z :
     '''
     vectorized_matrix = np.vectorize(matrix) 
     i_grid, j_grid = np.meshgrid(np.arange(m), np.arange(n), indexing='ij')
-    output_matrix = vectorized_matrix(i_grid, j_grid) - z
+    output_matrix = vectorized_matrix(i_grid, j_grid) - z*np.eye(m, n)
     return output_matrix
 
 # TODO: method to change defaults 
@@ -117,7 +123,7 @@ def _generate_matrix(matrix : Callable[[int, int], float], m : int, n : int, z :
     
 # CompInvg
 
-def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float], init_guess : int) -> None:
+def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float], zero_tolerance : float) -> None:
     '''
     Input validation for CompInvg_slow and CompInvg. Not intended to be called directly. 
     '''
@@ -127,10 +133,10 @@ def _input_validation_compInvg(n : int, y : float, g : Callable[[float], float],
         raise ValueError("Precision n must be positive")  
     if y < 0:
         raise ValueError("y in g^(-1)(y) must be non-negative") 
-    if abs(g(0.0)) > init_guess:
+    if abs(g(0.0)) >= zero_tolerance:
         raise ValueError("We must have g(0) = 0, with g our resolvent bound. This g(0) falls out of floating point tolerance.")
 
-def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : int = config.max_iter, init_guess : int = config.init_guess) -> Fraction:
+def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : int = config.max_iter, init_guess : int = config.init_guess, zero_tolerance : float = config.zero_tolerance) -> Fraction:
     '''
     Approximate g^(-1)(y) using a discrete mesh of size 1/n. Specifically, we find the least k such that g(k/n) > y and hence give an approximation to g^(-1)(y) to precision 1/n. 
 
@@ -148,6 +154,8 @@ def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : i
         maximum number of iterations to find k/n before termination. Default 10,000,000.
     init_guess : int 
         initial guess for k. Default 0. 
+    zero_tolerance: float
+        we validate that g(0) = 0 if g(0.0) < zero_tolerance
     
     Returns 
     -------------
@@ -171,13 +179,15 @@ def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : i
     O(n) assuming inexpensive g, does n iterations
     '''
     # input validation 
-    _input_validation_compInvg(n, y, g, init_guess)
+    _input_validation_compInvg(n, y, g, zero_tolerance)
+    
     # We first identify a 1-wide interval within which g first exceeds y
     j = init_guess
     while g(j + 1) <= y and j < max_iter:
         j += 1
     if j == max_iter:
         raise RuntimeError(f"max_iter ({max_iter}) exceeded. Last checked g({max_iter}) = {g(max_iter)}. Consider optimizing init_guess.")
+    
     # once we've exited this loop, we know g(j + 1) > y and g(j) <= y. Hence g^(-1)(y) \in [j, j + 1) = [(j*n)/n, (j*(n + 1))/n)
     for k in range(j*n, (j + 1)*n):
         if g(k/n) > y:
@@ -228,26 +238,34 @@ def DistSpec_slow(matrix : Callable[[int, int], complex], n : int, z : complex, 
     second term: eigenvalue search is O(n^3), we do this up to max_iter times.
     '''
     fn = f(n) # pre-compute f(n) in case it is expensive
+    
+    # input validation 
     if not (isinstance(fn, int)): #check if f(n) is an integer 
         raise TypeError(f"f(n) ({fn}) is not an int")
     if not fn >= n: # check if f(n) >= n
         raise ValueError(f"f(n) ({fn}) is not >= n")
+        
+    # prepare matrices 
     B = _generate_matrix(matrix, fn, n, z) # (A - z I)(1 : f(n))(1 : n)
     C = np.conjugate(_generate_matrix(matrix, n, fn, z)).T # (A - z I)*(1 : f(n))(1 : n), same as ((A - z I)(1 : n)(1 : f(n)))*
-    S = np.matmul(np.conjugate(B).T, B) # S = B*B
+    S = np.matmul(np.conjugate(B).T, B) # S = B* mul B
     S_size = S.shape[0] # get size of S to identify suitable identity matrix 
     id_S = np.identity(S_size)
-    T = np.matmul(np.conjugate(C).T, C) # T = C*C
+    T = np.matmul(np.conjugate(C).T, C) # T = C* mul C
     T_size = T.shape[0] # get size of T to identify suitable identity matrix 
     id_T = np.identity(T_size)
+    
+    #approximation loop
     v = True
-    l = 1
+    l = 0
+    eigvals_S = np.linalg.eigvalsh(S) 
+    eigvals_T = np.linalg.eigvalsh(T)
     while v and l < max_iter:
         l += 1
         l2 = l*l  
         n2 = n*n
-        p = np.all(np.linalg.eigvalsh(S - (l2/n2)*id_S) > 0) # check whether S - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
-        q = np.all(np.linalg.eigvalsh(T - (l2/n2)*id_T) > 0) # check whether T - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
+        p = np.all(eigvals_S > l2/n2) # check whether S - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
+        q = np.all(eigvals_T > l2/n2) # check whether T - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
         v = p and q
     if l == max_iter:
         raise RuntimeError(f"max_iter ({max_iter}) exceeded")
@@ -323,19 +341,14 @@ def generate_grid(n : int) -> list[complex]:
     '''
     # input validation 
     _input_validation_generate_grid(n)
-    #method 
-    grid = [] #init empty grid
+    #prepare for loop  
     n2 = n*n #pre-compute n^2 so we don't have to re-compute it every loop
     n4 = n2*n2 # pre-compute n^4 to avoid re-computation
-    for x in range(-n2, n2 + 1): #iterate over x
-        #as in docstring, y_max cannot be bigger than this and moreover every y in this range corresponds to a point in Grid(n) 
-        max_y = isqrt(n4 - x*x) 
-        for y in range(-max_y, max_y + 1):
-            grid.append(complex(x/n, y/n))
-    return grid
+    
+    return [
+        complex(x/n, y/n)
+        for x in range(-n2, n2 + 1)
+        for y in range(-isqrt(n4 - x*x), isqrt(n4 - x*x) + 1
+    ] #note that x^2 + y^2 <= n^4 is equivalent to |y| <= sqrt(n^4 - x^2), for each x we simply include the y with |y| <= sqrt(n^4 - x^2). 
 
 # CompSpecUB
-
-
-
-
