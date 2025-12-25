@@ -12,6 +12,9 @@ class SparseMatrix:
             new_entries[idx] = new_entries.get(idx, 0.0) + B.entries[idx] 
         new_default = self.get_default + B.get_default
         return SparseMatrix(new_entries, new_default)
+
+    def __repr__(self) -> str:
+        return f"SparseMatrix({self.entries} (len {len(self.entries)}), {self.default})"
        
     def get_entries(self) -> dict[tuple[int, int], float]:
         return self.entries 
