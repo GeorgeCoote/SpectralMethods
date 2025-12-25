@@ -24,7 +24,8 @@ def diagonal_matrix(i : int, j : int) -> int:
   if i == j:
     sign = (2*((i + 1)%2) - 1) # (-1)^i
     return sign*i*i # (-1)^i * i^2
-  return 0
+  else:
+    return 0
 ```
 
 In this case, if `A = diagonal_matrix`, we have an exact formula for the `(i, j)`th matrix element of `A`. The only data that is stored is the code for the function `diagonal_matrix`, until an evaluation is needed by a numerical computation. More generally, one could make:
