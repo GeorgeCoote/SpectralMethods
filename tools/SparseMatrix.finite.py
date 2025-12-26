@@ -1,4 +1,4 @@
-class SparseMatrix:
+class SparseMatrix.finite:
     def __init__(self, non_zero_entries : dict[tuple[int, int], float], default_value : float = 0.0):
         self.entries = non_zero_entries
         self.default = default_value 
@@ -6,7 +6,7 @@ class SparseMatrix:
     def __call__(self, i : int, j : int) -> float:
         return self.entries.get((i, j), self.default)
     
-    def __add__(self, B : 'SparseMatrix') -> 'SparseMatrix':
+    def __add__(self, B : 'SparseMatrix.finite') -> 'SparseMatrix.finite':
         # TODO: identify smaller matrix between self and B, and for loop over that instead of B by default.
         new_default = self.default + B.default
         new_entries = self.entries.copy()
