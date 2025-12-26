@@ -95,7 +95,7 @@ class FiniteSparseMatrix:
             If B is not a FiniteSparseMatrix. 
         '''
         if not isinstance(B, FiniteSparseMatrix):
-            raise TypeError("Expected FiniteSparseMatrix in sum with FiniteSparseMatrix.")
+            raise TypeError("Cannot add FiniteSparseMatrix with object not of FiniteSparseMatrix type.")
         A = self # for the sake of clarity. Note that A is another name for self, and does not copy the object.
         new_default = A.default + B.default # for (i, j) not specified in either A or B, the value will simply be the sum of the defaults for A and B.
         A_size = len(A.entries) 
@@ -184,7 +184,7 @@ class FiniteSparseMatrix:
         '''
         A = self  # for the sake of clarity. Note that A is another name for self, and does not copy the object.
         if not isinstance(B, FiniteSparseMatrix):
-            raise TypeError("Cannot add FiniteSparseMatrix with object not of FiniteSparseMatrix type.")
+            raise TypeError("Cannot multiply FiniteSparseMatrix with object not of FiniteSparseMatrix type.")
         
         if B.default != 0.0 or A.default != 0.0:
             raise ValueError("Default value of both self and B should be 0.0")
@@ -197,15 +197,15 @@ class FiniteSparseMatrix:
         # [1] Note that c_ij can only be non-zero if both the ith row of A and the jth column of B are non-zero. 
         # [2] furthermore, we only need to run over the non-zero columns of A and the non-zero rows of B, restricting the k that we need to sum over.
         
-        A_non_zero_rows = set([elt[0] for elt, _ in A.entries.items()]) # create a set of the indices of the non-zero rows of A
+        A_non_zero_rows = set(elt[0] for elt, _ in A.entries.items()) # create a set of the indices of the non-zero rows of A
         
-        B_non_zero_rows = set([elt[0] for elt, _ in B.entries.items()]) # create a set of the indices of the non-zero rows of B
+        B_non_zero_rows = set(elt[0] for elt, _ in B.entries.items()) # create a set of the indices of the non-zero rows of B
         B_non_zero_rows_max = max(B_non_zero_rows) # find the maximum index of a non-zero row of B
         
-        A_non_zero_cols = set([elt[1] for elt, _ in A.entries.items()]) # create a set of the indices of the non-zero columns of A
-        A_non_zero_cols_max = max(j_vals_self) # find the maximum index of a non-zero colum of A
+        A_non_zero_cols = set(elt[1] for elt, _ in A.entries.items()) # create a set of the indices of the non-zero columns of A
+        A_non_zero_cols_max = max(A_non_zero_cols) # find the maximum index of a non-zero colum of A
         
-        B_non_zero_cols = set([elt[1] for elt, _ in B.entries.items()]) # create a set of the indices of the non-zero columns of B
+        B_non_zero_cols = set(elt[1] for elt, _ in B.entries.items()) # create a set of the indices of the non-zero columns of B
         
         upper_bound = min(A_non_zero_cols_max, B_non_zero_rows_max) + 1 # by comment [2], we only need to consider k up to this minimum.
 
