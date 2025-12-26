@@ -228,13 +228,92 @@ class FiniteSparseMatrix:
         return FiniteSparseMatrix(new_entries, 0.0, new_tolerance)
 
     def __sub__(self, B : 'FiniteSparseMatrix') -> 'FiniteSparseMatrix':
-        A = self
-        return A + (-1)*B
+        '''
+        Allows for the addition of two FiniteSparseMatrixs by overloading the + operator. 
 
+        In the following, we write A = self for simplicity.
+
+        Given a FiniteSparseMatrix B, we return A - B.
+
+        Parameters
+        -------------
+        B : FiniteSparseMatrix
+            The B in A - B.
+
+        Returns
+        -------------
+        FiniteSparseMatrix
+            A - B as a FiniteSparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If B is not a FiniteSparseMatrix.
+        '''
+        # this is effectively a copy of the __add__ function with + swapped for -. One could instead implement this as A + (-1)*B, however that is more expensive. One could also roll the two functions into two
+        # with a switch, but I feel that this is clearer.
+        if not isinstance(B, FiniteSparseMatrix):
+            raise TypeError("Cannot add FiniteSparseMatrix with object not of FiniteSparseMatrix type.")
+        A = self # for the sake of clarity. Note that A is another name for self, and does not copy the object.
+        new_default = A.default + B.default # for (i, j) not specified in either A or B, the value will simply be the sum of the defaults for A and B.
+        A_size = len(A.entries) 
+        B_size = len(B.entries)
+        # we use A_size and B_size to determine which of A and B have specified elements. We will start by copying the larger matrix, and then add the entries of the smaller matrix
+        # this may be significantly cheaper if one matrix has a large number of specified elements and the other has few specified elements.
+        smaller, bigger = A, B if A_size <= B_size else B, A
+        new_entries = bigger.entries.copy() 
+        new_tolerance = min(A.tolerance, B.tolerance)
+        
+        for idx_i, idx_j in smaller.entries:
+            candidate = bigger(idx_i, idx_j) - smaller(idx_i, idx_j) # only line that changes
+            idx = (idx_i, idx_j)
+            if abs(candidate - new_default) < new_tolerance: 
+                # if the sum is equal to the new default up to the specified tolerance, we treat it as a default value and hence pop it from the dictionary of specified values
+                new_entries.pop(idx, None)
+                
+            else:
+                # else, we write it as a new specified value
+                new_entries[idx] = candidate 
+                
+        return FiniteSparseMatrix(new_entries, new_default, new_tolerance) 
+        
     def __repr__(self) -> str:
+        '''
+        Represent FiniteSparseMatrix as a string of the form:
+            FiniteSparseMatrix(<number of entries>, <default value>)
+
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        str
+            String to print. 
+
+        Raises
+        -------------
+        None
+        '''
         return f"FiniteSparseMatrix({len(self.entries)} entries, {self.default})"
        
     def get_entries(self) -> dict[tuple[int, int], Union[float, int, complex, Fraction]]:
+        '''
+        Returns the dictionary of specified values. 
+
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        dict[tuple[int, int], Union[float, int, complex, Fraction]]
+            Dictionary of specified values.
+
+        Raises
+        -------------
+        None
+        '''
         return self.entries 
     
     def set_entries(self, new_entries : dict[tuple[int, int], Union[float, int, complex, Fraction]]) -> None:
