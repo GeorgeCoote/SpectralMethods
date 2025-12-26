@@ -295,7 +295,7 @@ class FiniteSparseMatrix:
         -------------
         None
         '''
-        return f"FiniteSparseMatrix({len(self.entries)} entries, {self.default})"
+        return f"FiniteSparseMatrix({len(self.entries)} entries, default {self.default})"
        
     def get_entries(self) -> dict[tuple[int, int], Union[float, int, complex, Fraction]]:
         '''
