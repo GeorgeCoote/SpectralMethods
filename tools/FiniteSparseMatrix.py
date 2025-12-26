@@ -143,7 +143,7 @@ class FiniteSparseMatrix:
         TypeError
             If c cannot be interpreted as a scalar.
         '''
-        if not isinstance(c, [float, int, complex, Fraction]):
+        if not isinstance(c, (float, int, complex, Fraction)):
             raise TypeError("Cannot multiply FiniteSparseMatrix with non-scalar. Acceptable scalar types are float, int, complex, fractions.Fraction")
             
         if c < self.tolerance:
