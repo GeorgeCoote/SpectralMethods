@@ -1,3 +1,4 @@
+from fractions import Fraction
 from typing import Union
 
 class FiniteSparseMatrix:
@@ -6,19 +7,21 @@ class FiniteSparseMatrix:
 
     Demonstrates how a matrix may be represented as a callable, with functions included to enable arithmetic. 
     '''
-    def __init__(self, entries : dict[tuple[int, int], float], default : Union[float, int] = 0.0, tolerance : float = 1e-16) -> None:
+    def __init__(self, entries : dict[tuple[int, int], Union[float, int, complex, Fraction]], default : Union[float, int, complex, Fraction] = 0.0, tolerance : Union[float, Fraction] = 1e-16) -> None:
         '''
         Initialises the matrix by setting object attributes.
 
         Parameters
         -------------
-        entries : dict[tuple[int, int], float]
-            Dictionary giving the non-zero entries of the matrix. Keys are the indices (i, j) of the non-zero elements, and the values are the corresponding elements.
-        default : Union[float, int]
-            Gives the "default value" for the unspecified elements of the matrix. Sparse matrices typically have these equal to zero. Can be float or int.
+        entries : dict[tuple[int, int], Union[float, int, complex, Fraction]]
+            Dictionary giving the non-zero entries of the matrix. Can be given as floats, ints, complexes or Fractions or mixes of these. 
+            
+            Keys are the indices (i, j) of the non-zero elements, and the values are the corresponding elements.
+        default : float, int, complex or Fraction
+            Gives the "default value" for the unspecified elements of the matrix. Sparse matrices typically have these equal to zero. Can be float, int, complex or Fraction.
             
             Default value is 0.0
-        tolerance : float
+        tolerance : float or Fraction
             We recognize the x = 0 if x < tolerance to account for floating-point imprecision. Should be a very small number.
 
             Default value is 1e-16.
@@ -30,18 +33,18 @@ class FiniteSparseMatrix:
         Raises
         -------------
         TypeError
-            if default is not float or int
-            if tolerance is not float
+            if default is not float, int, complex or Fraction
+            if tolerance is not float or Fraction
         '''
-        if not isinstance(default, (float, int)):
-            raise TypeError("Default value must be float or int.")
-        if not isinstance(tolerance, float):
-            raise TypeError("Tolerance must be float.")
+        if not isinstance(default, (float, int, complex, Fraction)):
+            raise TypeError("Default value must have type in [float, int, complex, Fraction]")
+        if not isinstance(tolerance, (float, Fraction)):
+            raise TypeError("Tolerance must be float or Fraction.")
         self.entries = entries
         self.default = default 
         self.tolerance = tolerance
         
-    def __call__(self, i : int, j : int) -> float:
+    def __call__(self, i : int, j : int) -> Union[float, int, complex, Fraction]:
         '''
         Allows a FiniteSparseMatrix to be used as a callable. 
 
@@ -65,28 +68,90 @@ class FiniteSparseMatrix:
         '''
         return self.entries.get((i, j), self.default) # tries self.entries[(i, j)]. if (i, j) is not a key in self.entries then we return self.default.
     
-    def __add__(self, B : 'FiniteSparseMatrix') -> 'FiniteSparseMatrix':
-        new_default = self.default + B.default
-        self_size = len(self.entries)
+    def __add__(self, B : 'FiniteSparseMatrix') -> 'FiniteSparseMatrix': 
+        # note that the string 'FiniteSparseMatrix' is used in the type hint as opposed to the type FiniteSparseMatrix.
+        # Python checks whether the type in a type hint exists. 
+        # Since we have not yet finished the definition of FiniteSparseMatrix, writing B : FiniteSparseMatrix and -> FiniteSparseMatrix would raise a NameError.
+        '''
+        Allows for the addition of two FiniteSparseMatrixs by overloading the + operator. 
+
+        In the following, we write A = self for simplicity.
+
+        Given a FiniteSparseMatrix B, we return A + B.
+
+        Parameters
+        -------------
+        B : FiniteSparseMatrix
+            The B in A + B.
+
+        Returns
+        -------------
+        FiniteSparseMatrix
+            A + B as a FiniteSparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If B is not a FiniteSparseMatrix. 
+        '''
+        if not isinstance(B, FiniteSparseMatrix):
+            raise TypeError("Expected FiniteSparseMatrix in sum with FiniteSparseMatrix.")
+        A = self # for the sake of clarity. Note that A is another name for self, and does not copy the object.
+        new_default = A.default + B.default # for (i, j) not specified in either A or B, the value will simply be the sum of the defaults for A and B.
+        A_size = len(A.entries) 
         B_size = len(B.entries)
-        smaller, bigger = self, B if self_size <= B_size else B, self
-        new_entries = bigger.entries.copy()
+        # we use A_size and B_size to determine which of A and B have specified elements. We will start by copying the larger matrix, and then add the entries of the smaller matrix
+        # this may be significantly cheaper if one matrix has a large number of specified elements and the other has few specified elements.
+        smaller, bigger = A, B if A_size <= B_size else B, A
+        new_entries = bigger.entries.copy() 
         
         for idx in smaller.entries:
             candidate = new_entries.get(idx, 0.0) + smaller.entries[idx]
-            if abs(candidate - new_default) < self.tolerance:
+            if abs(candidate - new_default) < self.tolerance: 
+                # if the sum is equal to the new default up to the specified tolerance, we treat it as a default value and hence pop it from the dictionary of specified values
                 new_entries.pop(idx, None)
                 
             else:
+                # else, we write it as a new specified value
                 new_entries[idx] = candidate 
                 
         return FiniteSparseMatrix(new_entries, new_default)
 
-    def __mul__(self, c : float) -> 'FiniteSparseMatrix':
+    def __mul__(self, c : Union[float, int, complex, Fraction]) -> 'FiniteSparseMatrix':
+        # note that the string 'FiniteSparseMatrix' is used in the type hint as opposed to the type FiniteSparseMatrix.
+        # Python checks whether the type in a type hint exists. 
+        # Since we have not yet finished the definition of FiniteSparseMatrix, writing B : FiniteSparseMatrix and -> FiniteSparseMatrix would raise a NameError.
+        '''
+        Allows for the multiplication of FiniteSparseMatrix by a scalar by overloading the * operator.
+
+        In the following, we write A = self for simplicity.
+
+        Given a scalar multiple c, we return c*A as a FiniteSparseMatrix.
+        
+        Parameters
+        -------------
+        c : float, int, complex or Fraction
+            Gives the scalar multiple.
+
+        Returns
+        -------------
+        FiniteSparseMatrix
+            c*A as a FiniteSparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If c cannot be interpreted as a scalar.
+        '''
+        if not isinstance(c, [float, int, complex, Fraction]):
+            raise TypeError("Cannot multiply FiniteSparseMatrix with non-scalar. Acceptable scalar types are float, int, complex, fractions.Fraction")
+            
         if c < self.tolerance:
+            # if c < tolerance, then we treat c = 0 and hence output the zero matrix
             return FiniteSparseMatrix({}, 0.0)
             
         else:
+            # else, we multiply all elements of the matrix (including the defaults) by c. 
             new_entries = {key : c*val for key, val in self.entries.items()}
             new_default = c*self.default
             return FiniteSparseMatrix(new_entries, new_default)
@@ -129,14 +194,14 @@ class FiniteSparseMatrix:
     def __repr__(self) -> str:
         return f"FiniteSparseMatrix({len(self.entries)} entries, {self.default})"
        
-    def get_entries(self) -> dict[tuple[int, int], float]:
+    def get_entries(self) -> dict[tuple[int, int], Union[float, int, complex, Fraction]]:
         return self.entries 
     
-    def set_entries(self, new_entries : dict[tuple[int, int], float]) -> None:
+    def set_entries(self, new_entries : dict[tuple[int, int], Union[float, int, complex, Fraction]]) -> None:
         for idx, val in new_entries.items():
             self.entries[idx] = val
 
-    def pop(self, pos : dict[tuple[int, int], float]) -> None:
+    def pop(self, pos : dict[tuple[int, int], Union[float, int, complex, Fraction]]) -> None:
         self.entries.pop(pos, None)
     
     def get_default(self):
