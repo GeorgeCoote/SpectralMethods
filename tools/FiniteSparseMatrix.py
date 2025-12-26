@@ -104,10 +104,11 @@ class FiniteSparseMatrix:
         # this may be significantly cheaper if one matrix has a large number of specified elements and the other has few specified elements.
         smaller, bigger = A, B if A_size <= B_size else B, A
         new_entries = bigger.entries.copy() 
+        new_tolerance = min(A.tolerance, B.tolerance)
         
         for idx in smaller.entries:
             candidate = new_entries.get(idx, 0.0) + smaller.entries[idx]
-            if abs(candidate - new_default) < self.tolerance: 
+            if abs(candidate - new_default) < new_tolerance: 
                 # if the sum is equal to the new default up to the specified tolerance, we treat it as a default value and hence pop it from the dictionary of specified values
                 new_entries.pop(idx, None)
                 
@@ -115,12 +116,9 @@ class FiniteSparseMatrix:
                 # else, we write it as a new specified value
                 new_entries[idx] = candidate 
                 
-        return FiniteSparseMatrix(new_entries, new_default)
+        return FiniteSparseMatrix(new_entries, new_default, new_tolerance)
 
     def __mul__(self, c : Union[float, int, complex, Fraction]) -> 'FiniteSparseMatrix':
-        # note that the string 'FiniteSparseMatrix' is used in the type hint as opposed to the type FiniteSparseMatrix.
-        # Python checks whether the type in a type hint exists. 
-        # Since we have not yet finished the definition of FiniteSparseMatrix, writing B : FiniteSparseMatrix and -> FiniteSparseMatrix would raise a NameError.
         '''
         Allows for the multiplication of FiniteSparseMatrix by a scalar by overloading the * operator.
 
@@ -143,7 +141,7 @@ class FiniteSparseMatrix:
         TypeError
             If c cannot be interpreted as a scalar.
         '''
-        A = self
+        A = self # for the sake of clarity. Note that A is another name for self, and does not copy the object.
         if not isinstance(c, (float, int, complex, Fraction)):
             raise TypeError("Cannot multiply FiniteSparseMatrix with non-scalar. Acceptable scalar types are float, int, complex, fractions.Fraction")
             
@@ -155,39 +153,78 @@ class FiniteSparseMatrix:
             # else, we multiply all elements of the matrix (including the defaults) by c. 
             new_entries = {key : c*val for key, val in A.entries.items()}
             new_default = c*A.default
-            return FiniteSparseMatrix(new_entries, new_default)
+            return FiniteSparseMatrix(new_entries, new_default, self.tolerance)
 
     def __matmul__(self, B : 'FiniteSparseMatrix') -> 'FiniteSparseMatrix':
-        if B.default != 0.0 or self.default != 0.0:
+        '''
+        Allows for the multiplication of FiniteSparseMatrix by a FiniteSparseMatrix by overloading the @ operator. 
+        
+        This is mathematically guaranteed to produce another FiniteSparseMatrix if the default values of both matrices are zero.
+
+        In the following, we write A = self for simplicity.
+
+        Given a FiniteSparseMatrix B, we find the matrix product A @ B.
+
+        Parameters
+        -------------
+        B : FiniteSparseMatrix
+            Gives B in A @ B.
+
+        Returns
+        -------------
+        FiniteSparseMatrix
+            A @ B as a FiniteSparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If B is not a FiniteSparseMatrix.
+        ValueError
+            If the default value of either A or B is non-zero. 
+        '''
+        A = self  # for the sake of clarity. Note that A is another name for self, and does not copy the object.
+        if not isinstance(B, FiniteSparseMatrix):
+            raise TypeError("Cannot add FiniteSparseMatrix with object not of FiniteSparseMatrix type.")
+        
+        if B.default != 0.0 or A.default != 0.0:
             raise ValueError("Default value of both self and B should be 0.0")
             
-        if not B.entries or not self.entries:
-            return FiniteSparseMatrix({}, 0.0)
-            
-        i_vals_self = set([elt[0] for elt, _ in self.entries.items()])
+        if not B.entries or not A.entries: 
+            # if A = 0 or B = 0, product is zero so we can return zero matrix with no calculation.
+            return FiniteSparseMatrix({}, 0.0, A.tolerance)
+
+        # note that if A @ B = (c_ij), we have c_ij = Σ_k a_ik b_kj. Initially, this is an infinite sum and infinitely many (i, j) are concerned.
+        # [1] Note that c_ij can only be non-zero if both the ith row of A and the jth column of B are non-zero. 
+        # [2] furthermore, we only need to run over the non-zero columns of A and the non-zero rows of B, restricting the k that we need to sum over.
         
-        i_vals_B = set([elt[0] for elt, _ in B.entries.items()])
-        max_i_vals_B = max(i_vals_B)
+        A_non_zero_rows = set([elt[0] for elt, _ in A.entries.items()]) # create a set of the indices of the non-zero rows of A
         
-        j_vals_self = set([elt[1] for elt, _ in self.entries.items()])
-        max_j_vals_self = max(j_vals_self)
+        B_non_zero_rows = set([elt[0] for elt, _ in B.entries.items()]) # create a set of the indices of the non-zero rows of B
+        B_non_zero_rows_max = max(B_non_zero_rows) # find the maximum index of a non-zero row of B
         
-        j_vals_B = set([elt[1] for elt, _ in B.entries.items()])
+        A_non_zero_cols = set([elt[1] for elt, _ in A.entries.items()]) # create a set of the indices of the non-zero columns of A
+        A_non_zero_cols_max = max(j_vals_self) # find the maximum index of a non-zero colum of A
         
-        upper_bound = min(max_i_vals_B, max_j_vals_self) + 1
+        B_non_zero_cols = set([elt[1] for elt, _ in B.entries.items()]) # create a set of the indices of the non-zero columns of B
+        
+        upper_bound = min(A_non_zero_cols_max, B_non_zero_rows_max) + 1 # by comment [2], we only need to consider k up to this minimum.
 
         new_entries = {}
+
+        new_tolerance = min(A.tolerance, B.tolerance)
         
-        for i in i_vals_self:
-            for j in j_vals_B:
+        for i in A_non_zero_rows:
+            for j in B_non_zero_cols:
+                # c_ij can only be non-zero if i is in A_non_zero_rows and j is in B_non_zero_cols by comment [1]. 
                 candidate = 0.0
                 for k in range(0, upper_bound):
-                    candidate += self(i, k)*B(k, j)
+                    candidate += A(i, k)*B(k, j)
                     
-                if abs(candidate) > self.tolerance:
+                if abs(candidate) > new_tolerance:
+                    # if the computed matrix element is distinguished from zero, we note it as a distinguished value.
                     new_entries[(i, j)] = candidate
 
-        return FiniteSparseMatrix(new_entries, 0.0)
+        return FiniteSparseMatrix(new_entries, 0.0, new_tolerance)
 
     def __sub__(self, B : 'FiniteSparseMatrix') -> 'FiniteSparseMatrix':
         A = self
@@ -212,4 +249,9 @@ class FiniteSparseMatrix:
     def set_default(self, new_default : float) -> None:
         self.default = new_default
 
+    def get_tolerance(self):
+        return self.tolerance
+
+    def set_tolerance(self, new_tolerance : Union[float, Fraction]) -> None:
+        self.tolerance = new_tolerance
     
