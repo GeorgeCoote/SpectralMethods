@@ -6,6 +6,8 @@ class FiniteSparseMatrix:
     Class representing a sparse matrix with only finitely many non-zero entries. 
 
     Demonstrates how a matrix may be represented as a callable, with functions included to enable arithmetic. 
+
+    Throughout this documentation, the zero entries will be called "defaultly valued" and the non-zero entries will be called "specified". 
     '''
     def __init__(self, entries : dict[tuple[int, int], Union[float, int, complex, Fraction]], default : Union[float, int, complex, Fraction] = 0.0, tolerance : Union[float, Fraction] = 1e-16) -> None:
         '''
@@ -43,8 +45,11 @@ class FiniteSparseMatrix:
         self.entries = entries
         self.default = default 
         self.tolerance = tolerance
+        self.scalar_type = Union[float, int, complex, Fraction]
+        self.dict_type =  dict[tuple[int, int], self.scalar_type]
+        self.tol_type = Union[float, Fraction]
         
-    def __call__(self, i : int, j : int) -> Union[float, int, complex, Fraction]:
+    def __call__(self, i : int, j : int) -> self.scalar_type:
         '''
         Allows a FiniteSparseMatrix to be used as a callable. 
 
@@ -119,7 +124,7 @@ class FiniteSparseMatrix:
                 
         return FiniteSparseMatrix(new_entries, new_default, new_tolerance)
 
-    def __mul__(self, c : Union[float, int, complex, Fraction]) -> 'FiniteSparseMatrix':
+    def __mul__(self, c : self.scalar_type) -> 'FiniteSparseMatrix':
         '''
         Allows for the multiplication of FiniteSparseMatrix by a scalar by overloading the * operator.
 
@@ -297,9 +302,9 @@ class FiniteSparseMatrix:
         '''
         return f"FiniteSparseMatrix({len(self.entries)} entries, default {self.default})"
        
-    def get_entries(self) -> dict[tuple[int, int], Union[float, int, complex, Fraction]]:
+    def get_entries(self) -> self.dict_type:
         '''
-        Returns the dictionary of specified values. 
+        Returns the dictionary of specified elements. 
 
         Parameters
         -------------
@@ -307,7 +312,7 @@ class FiniteSparseMatrix:
 
         Returns
         -------------
-        dict[tuple[int, int], Union[float, int, complex, Fraction]]
+        self.dict_type
             Dictionary of specified values.
 
         Raises
@@ -316,22 +321,121 @@ class FiniteSparseMatrix:
         '''
         return self.entries 
     
-    def set_entries(self, new_entries : dict[tuple[int, int], Union[float, int, complex, Fraction]]) -> None:
-        for idx, val in new_entries.items():
-            self.entries[idx] = val
+    def set_entries(self, new_entries : self.dict_type) -> None:
+        '''
+        Update dictionary of specified elements with dictionary. If an entry is modified to within self.tolerance of the default value, it will be removed from the dictionary.
 
-    def pop(self, pos : dict[tuple[int, int], Union[float, int, complex, Fraction]]) -> Union[None, float, int, complex, Fraction]:
-        return self.entries.pop(pos, None)
+        Parameters
+        -------------
+        new_entries : self.dict_type
+            Dictionary of new entries with key (i, j) representing the index of the element to be changed, and key equal to the value to be inserted. 
+
+        Returns
+        -------------
+        None
+
+        Raises
+        -------------
+        None
+        '''
+        for idx, val in new_entries.items():
+            self.entries.pop(idx, None)
+            if abs(val - self.default) < self.tolerance:
+                self.entries[idx] = val
+
+    def pop(self, pos : tuple[int, int]) -> self.scalar_type:
+        '''
+        Resets matrix element at specified position to its default value, and returns its previous value. If the value is already the default, no change is made and the default value is returned.
+
+        Parameters
+        -------------
+        pos : tuple[int, int]
+            Position to pop.
+
+        Returns
+        -------------
+        self.scalar_type
+            The matrix element at pos. 
+
+        Raises
+        -------------
+        None
+        '''
+        return self.entries.pop(pos, self.default)
     
-    def get_default(self):
+    def get_default(self) -> self.scalar_type:
+        '''
+        Returns default value of matrix. Basic getter.
+
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        self.scalar_type
+            The default value of the matrix. 
+
+        Raises
+        -------------
+        None
+        '''
         return self.default
     
-    def set_default(self, new_default : float) -> None:
+    def set_default(self, new_default : self.scalar_type) -> None:
+        '''
+        Changes default value of matrix. Basic setter.
+
+        Parameters
+        -------------
+        new_default : self.scalar_type
+            New default value to set.
+
+        Returns
+        -------------
+        None
+
+        Raises
+        -------------
+        None
+        '''
         self.default = new_default
 
-    def get_tolerance(self):
+    def get_tolerance(self) -> self.tol_type:
+        '''
+        Returns tolerance of matrix. Basic getters.
+
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        self.tol_type
+            The tolerance of the matrix.
+
+        Raises
+        -------------
+        None
+        '''
         return self.tolerance
 
-    def set_tolerance(self, new_tolerance : Union[float, Fraction]) -> None:
+    def set_tolerance(self, new_tolerance : self.tol_type) -> None:
+        '''
+        Changes tolerance of matrix. Basic setter.
+
+        Parameters
+        -------------
+        new_tolerance : self.tol_type
+            New tolerance of matrix. 
+
+        Returns
+        -------------
+        None
+
+        Raises
+        -------------
+        None
+        '''
         self.tolerance = new_tolerance
     
