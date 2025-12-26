@@ -1,7 +1,7 @@
 class FiniteSparseMatrix:
-    def __init__(self, non_zero_entries : dict[tuple[int, int], float], default_value : float = 0.0):
-        self.entries = non_zero_entries
-        self.default = default_value 
+    def __init__(self, entries : dict[tuple[int, int], float], default : float = 0.0):
+        self.entries = entries
+        self.default = default 
         
     def __call__(self, i : int, j : int) -> float:
         return self.entries.get((i, j), self.default)
