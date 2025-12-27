@@ -10,10 +10,10 @@
 
 A few examples of how one may specify a matrix via a `Callable` are given below.
 
-### Diagonal matrix 
+### Alternating squares matrix 
 
 ```python
-def diagonal_matrix(i : int, j : int) -> int:
+def alternating_squares(i : int, j : int) -> int:
   '''Generates the matrix consisting of 0, -1, 4, -9, ... on its diagonal. That is:
   [0   0    0   0  ..]
   [0   -1   0   0  ..]
@@ -28,9 +28,4 @@ def diagonal_matrix(i : int, j : int) -> int:
     return 0
 ```
 
-In this case, if `A = diagonal_matrix`, we have an exact formula for the `(i, j)`th matrix element of `A`. The only data that is stored is the code for the function `diagonal_matrix`, until an evaluation is needed by a numerical computation. More generally, one could make:
-
-```python
-def diagonal_matrix(i : int, j : int, f : Callable[[int], int]) -> int:
-  return f(i) if i == j else 0
-```
+In this case, if `A = alternating_squares`, we have an exact formula for the `(i, j)`th matrix element of `A`. The only data that is stored is the code for the function `alternating_squares`, until an evaluation is needed by a numerical computation. 
