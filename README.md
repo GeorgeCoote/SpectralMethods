@@ -8,3 +8,4 @@ A collection of spectral methods implemented in Python. Active work in progress 
 
 * ResDMD - based on https://arxiv.org/abs/2205.09779
 * GeometricFeatures - based on https://link.springer.com/article/10.1007/s10208-022-09598-0
+* SpecMeasuresAndType - based on https://arxiv.org/abs/1908.06721
