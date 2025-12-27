@@ -1,4 +1,4 @@
-#SOURCE: https://www.damtp.cam.ac.uk/user/mjc249/pdfs/JEMS_foundations_colbrook.pdf The foundations of spectral computations via the Solvability Complexity Index hierarchy by Matthew J. Colbrook, Anders C. Hansen (2022)
+# SOURCE: https://www.damtp.cam.ac.uk/user/mjc249/pdfs/JEMS_foundations_colbrook.pdf The foundations of spectral computations via the Solvability Complexity Index hierarchy by Matthew J. Colbrook, Anders C. Hansen (2022)
 
 from fractions import Fraction
 from collections.abc import Callable
@@ -628,4 +628,5 @@ def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int
         if DistSpec(matrix, n, z, f, fn, c, c_n) + c_n < eps
     ]
         
+
 
