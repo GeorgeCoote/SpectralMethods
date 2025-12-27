@@ -177,9 +177,36 @@ class SparseMatrix:
         '''
         return self.__rmul__(c)
     
-    def __matmul__(self, B : 'SparseMatrix') -> 'SparseMatrix':
-        pass 
-    
+    def __matmul__(self, B : 'SparseMatrix') -> Callable[[int, int], Union[float, int, complex, Fraction]:
+        '''
+        Allows multiplication of the SparseMatrix by a SparseMatrix by overloading the @ operator. 
+        
+        Note that the result may not be sparse, so only the callable associated with the matrix is given.
+
+        Parameters
+        -------------
+        B : SparseMatrix
+            Gives B in A @ B.
+
+        Returns
+        -------------
+        Callable[[int, int], Union[float, int, complex, Fraction]
+            Returns the callable representing the matrix elements of A @ B.
+
+        Raises
+        -------------
+        TypeError
+            If B is not a SparseMatrix.
+        ''' 
+        A = self 
+        def new_entries(i : int, j : int) -> Union[float, int, complex, Fraction]:
+            s = 0
+            upper_bound = max(A.f(i), B.f(j)) + 1
+            for k in range(0, upper_bound):
+                s += A(i, k)*B(k, j)
+            return s
+        return new_entries 
+        
     def __sub__(self, B : 'SparseMatrix') -> 'SparseMatrix':
         '''
         Allows subtraction of two SparseMatrix objects by overloading the - operator. 
@@ -205,7 +232,7 @@ class SparseMatrix:
         '''
         A = self 
         
-        if not isinstance(B, SparseMatrix):
+        if not isinstance(B, FiniteSparseMatrix):
             raise TypeError("Cannot add SparseMatrix with object not of SparseMatrix type.")
         
         new_entries = lambda i, j : A.entries(i, j) - B.entries(i, j)
