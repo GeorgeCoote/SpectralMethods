@@ -588,7 +588,7 @@ def _validate_eps(eps : Union[float, Fraction, int]) -> Fraction:
 
 def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int, f : Callable[[int], int], fn : int = None, c : Callable[[int], Fraction], c_n : Fraction = None):
     '''
-    Computes an epsilon-approximation to the pseudospectrum.
+    Computes an nth order approximation to the epsilon-pseudospectrum.
     
     Parameters
     -------------
@@ -628,5 +628,6 @@ def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int
         if DistSpec(matrix, n, z, f, fn, c, c_n) + c_n < eps
     ]
         
+
 
 
