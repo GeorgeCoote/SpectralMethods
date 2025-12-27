@@ -1,5 +1,6 @@
 from fractions import Fraction
 from typing import Union
+from collections.abc import Callable
 
 class SparseMatrix:
     '''
@@ -115,7 +116,7 @@ class SparseMatrix:
         
         return SparseMatrix(new_entries, new_f, new_tolerance)
     
-    def __rmul__(self, c : Union[float, int, complex, Fraction) -> 'SparseMatrix':
+    def __rmul__(self, c : Union[float, int, complex, Fraction]) -> 'SparseMatrix':
         '''
         Allows left multiplication of SparseMatrix by a scalar by overloading the * operator.
 
@@ -199,9 +200,12 @@ class SparseMatrix:
             If B is not a SparseMatrix.
         ''' 
         A = self 
+        # write A @ B = c_ij where c_ij = Σ_k a_ik b_kj. This sum initially involves infinitely many k.
+        # since a_ik = 0 for k > f(i) and b_kj = 0 for k > f(j), we have a_ij b_kj = 0 for k > min(A.f(i), B.f(j))
+        # hence we sum from k = 0 to k = min(A.f(i), B.f(j))
         def new_entries(i : int, j : int) -> Union[float, int, complex, Fraction]:
             s = 0
-            upper_bound = max(A.f(i), B.f(j)) + 1
+            upper_bound = min(A.f(i), B.f(j)) + 1
             for k in range(0, upper_bound):
                 s += A(i, k)*B(k, j)
             return s
@@ -232,7 +236,7 @@ class SparseMatrix:
         '''
         A = self 
         
-        if not isinstance(B, FiniteSparseMatrix):
+        if not isinstance(B, SparseMatrix):
             raise TypeError("Cannot add SparseMatrix with object not of SparseMatrix type.")
         
         new_entries = lambda i, j : A.entries(i, j) - B.entries(i, j)
