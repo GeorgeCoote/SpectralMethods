@@ -116,46 +116,178 @@ class SparseMatrix:
         return SparseMatrix(new_entries, new_f, new_tolerance)
     
     def __rmul__(self, c : Union[float, int, complex, Fraction) -> 'SparseMatrix':
+        '''
+        Allows left multiplication of SparseMatrix by a scalar by overloading the * operator.
+
+        In the following, we write A = self for simplicity.
+
+        Given a scalar multiple c, we return c*A as a SparseMatrix.
+        
+        Parameters
+        -------------
+        c : float, int, complex or Fraction
+            Gives the scalar multiple.
+
+        Returns
+        -------------
+        SparseMatrix
+            c*A as a SparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If c cannot be interpreted as a scalar.
+        '''
         A = self
         
         if not isinstance(c, (float, int, complex, Fraction)):
-            raise TypeError("Cannot multiply FiniteSparseMatrix with non-scalar. Acceptable scalar types are float, int, complex, fractions.Fraction")
+            raise TypeError("Cannot multiply SparseMatrix with non-scalar. Acceptable scalar types are float, int, complex, fractions.Fraction")
         
-        if abs(c) < A.tolerance:
-            return SparseMatrix(lambda x : 0, lambda x : 0, A.tolerance)
+        if abs(c) < A.tolerance: # c = 0
+            # 0*A = 0. 
+            return SparseMatrix(lambda x : 0, lambda x : 0, A.tolerance) # The zero matrix satisfies 0_ij = 0 for i > 0 := 0.f(j) and j > 0 := 0.f(i). Previous f still works but inefficient.
         
         else:
             new_entries = lambda i, j : c*A.entries(i, j)
+            # same f works for c != 0
             return SparseMatrix(new_entries, A.f, A.tolerance)
+    
+    def __mul__(self, c : Union[float, int, complex, Fraction]) -> 'SparseMatrix':
+        '''
+        Allows right multiplication of SparseMatrix by a scalar by overloading the * operator.
+
+        In the following, we write A = self for simplicity.
+
+        Given a scalar multiple c, we return A*c = c*A as a SparseMatrix.
+        
+        Parameters
+        -------------
+        c : float, int, complex or Fraction
+            Gives the scalar multiple.
+
+        Returns
+        -------------
+        SparseMatrix
+            A*c as a SparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If c cannot be interpreted as a scalar.
+        '''
+        return self.__rmul__(c)
     
     def __matmul__(self, B : 'SparseMatrix') -> 'SparseMatrix':
         pass 
     
     def __sub__(self, B : 'SparseMatrix') -> 'SparseMatrix':
+        '''
+        Allows subtraction of two SparseMatrix objects by overloading the - operator. 
+
+        In the following, we write A = (a_ij) = self for simplicity.
+
+        Given a SparseMatrix B = (b_ij), we return A - B = (a_ij - b_ij).
+
+        Parameters
+        -------------
+        B : SparseMatrix
+            The B in A - B.
+
+        Returns
+        -------------
+        SparseMatrix
+            A - B as a SparseMatrix.
+
+        Raises
+        -------------
+        TypeError
+            If B is not a SparseMatrix. 
+        '''
         A = self 
         
         if not isinstance(B, FiniteSparseMatrix):
             raise TypeError("Cannot add SparseMatrix with object not of SparseMatrix type.")
         
         new_entries = lambda i, j : A.entries(i, j) - B.entries(i, j)
-        new_f = lambda x : max(A.f(x), B.f(x))
+        new_f = lambda x : max(A.f(x), B.f(x)) # see comment in __add__ for explanation
         new_tolerance = min(A.tolerance, B.tolerance)
         
         return SparseMatrix(new_entries, new_f, new_tolerance)
     
     def __repr__(self) -> str:
+        '''
+        Represent SparseMatrix as a string of the form:
+            SparseMatrix(<string representation of self.entries>, <string representation of self.f>, self.tolerance)
+
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        str
+            String to print. 
+        '''
         return f"SparseMatrix({self.entries}, {self.f}, {self.tolerance})"
     
     def get_entries(self) -> Callable[[int, int], Union[float, int, complex, Fraction]]:
+        '''
+        Returns self.entries, the callable generating the matrix elements of A = self. 
+
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        Callable[[int, int], Union[float, int, complex, Fraction]]:
+            the callable giving the matrix elements of A. 
+        '''
         return self.entries 
     
     def set_entries(self, entries : Callable[[int, int], Union[float, int, complex, Fraction]]) -> None:
+        '''
+        Sets self.entries, the callable generating the matrix elements of A = self. 
+
+        Parameters
+        -------------
+        Callable[[int, int], Union[float, int, complex, Fraction]]:
+            the callable giving the matrix elements of A. 
+
+        Returns
+        -------------
+        None 
+        '''
         self.entries = entries 
     
     def get_f(self) -> Callable[[int], int]:
+        '''
+        Returns the f associated with A = self = (a_ij). 
+        
+        Parameters
+        -------------
+        None
+
+        Returns
+        -------------
+        Callable[[int], int]
+            Gives f such that a_ij = 0 if i > f(j) and j > f(i).
+        '''
         return self.f 
     
     def set_f(self, f : Callable[[int], int]) -> None:
+        '''
+        Returns the f associated with A = self = (a_ij). 
+        
+        Parameters
+        -------------
+        Callable[[int], int]
+            The f to set. Must satisfy a_ij = 0 if i > f(j) and j > f(i).
+
+        Returns
+        -------------
+        None
+        '''
         self.f = f
     
     def get_tolerance(self) -> Union[float, Fraction]:
