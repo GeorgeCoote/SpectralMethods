@@ -14,7 +14,7 @@ A first course in functional analysis, including some spectral theory is useful.
 * Positive semi-definite
 
 Some less immediate definitions:
-* **Matrix element**: Let `H` be a Hilbert space with inner product < , >. Let `A` be an operator from a Hilbert space `H` to itself. Let `E = (e_i)` be an orthonormal basis for `H`. We refer to `<A e_j, e_i>` as the matrix element at the `(i, j)` position. When we express `A` as an infinite matrix in the basis `E`, `<A e_j, e_i>` is the element on the `i`th row, `j`th column. This is because `A e_j` gives the `j`th column, and letting it act on `e_i` extracts the `i`th entry of this vector (corresponding to the `i`th row). 
+* **Matrix element**: Let `H` be a Hilbert space with inner product < , >. Let `A` be an operator from a Hilbert space `H` to itself. Let `E = (e_i)` be an orthonormal basis for `H`. We refer to `<A e_j, e_i>` as the matrix element at the `(i, j)` position, or simply the `(i, j)`th matrix element. When we express `A` as an infinite matrix in the basis `E`, `<A e_j, e_i>` is the element on the `i`th row, `j`th column. This is because `A e_j` gives the `j`th column, and letting it act on `e_i` extracts the `i`th entry of this vector (corresponding to the `i`th row). 
 
 ## High-level design decisions
 
