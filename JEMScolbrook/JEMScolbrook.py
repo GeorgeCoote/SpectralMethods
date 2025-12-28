@@ -367,9 +367,9 @@ def DistSpec_slow(matrix : Callable[[int, int], complex], n : int, z : Union[com
         l += 1
         l2 = l*l  
         n2 = n*n
-        p = np.all(eigvals_S > l2/n2 + float_tolerance) # check whether S - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
-        q = np.all(eigvals_T > l2/n2 + float_tolerance) # check whether T - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
-        v = p and q
+        S_minus_l2_over_n2_posdef = np.all(eigvals_S > l2/n2 + float_tolerance) # check whether S - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
+        T_minus_l2_over_n2_posdef = np.all(eigvals_T > l2/n2 + float_tolerance) # check whether T - l^2/n^2 I is positive definite. This represents an upper bound on distance to the spectrum
+        v = S_minus_l2_over_n2_posdef and T_minus_l2_over_n2_posdef
     
     if l == max_iter:
         raise RuntimeError(f"max_iter ({max_iter}) exceeded")
@@ -631,5 +631,6 @@ def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int
         for z in grid 
         if DistSpec(matrix, n, z, f, fn) + c_n < eps
     ]
+
 
 
