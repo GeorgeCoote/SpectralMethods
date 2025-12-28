@@ -501,7 +501,7 @@ def intersect_grid_with_ball(n : int, rad : Fraction, centre : tuple[Fraction, F
         if (w_j[1] - centre[1])*(w_j[1] - centre[1]) + (w_j[0] - centre[0])*(w_j[0] - centre[0]) <= r2 # if |w_j - z|^2 <= r^2. We check squares so we are comparing rational numbers rather than floats.
     ]
 
-def CompSpecUB(matrix : Callable[[int, int], complex], n : int, g : Callable[[float], float], f : Callable[[int], int], fn : int = None, c : Callable[[int], Fraction], c_n : Fraction = None) -> tuple[list[tuple[Fraction, Fraction]], float]:
+def CompSpecUB(matrix : Callable[[int, int], complex], n : int, g : Callable[[float], float], f : Callable[[int], int], fn : int = None, c : Callable[[int], Fraction], c_n : Fraction = None) -> tuple[list[tuple[Fraction, Fraction]], Fraction]:
     '''
     Computes a tuple consisting of an approximation to the spectrum of the matrix input, as well as a bound on the error of this approximation. 
     
@@ -631,4 +631,5 @@ def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int
         for z in grid 
         if DistSpec(matrix, n, z, f, fn) + c_n < eps
     ]
+
 
