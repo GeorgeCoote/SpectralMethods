@@ -201,8 +201,8 @@ class SparseMatrix:
 
         # see readme for explanation
 
-        A_running_max = lambda i : max(A.f(k) for k <= B.f(i))
-        B_running_max = lambda i : max(B.f(k) for k <= A.f(i))
+        A_running_max = lambda i : max(A.f(k) for k in range(B.f(i) + 1))
+        B_running_max = lambda i : max(B.f(k) for k in range(A.f(i) + 1))
         new_f = lambda i : max(A_running_max(i), B_running_max(i))
 
         def new_entries(i : int, j : int) -> Union[float, int, complex, Fraction]:
