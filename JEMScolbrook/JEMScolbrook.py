@@ -359,7 +359,6 @@ def DistSpec_slow(matrix : Callable[[int, int], complex], n : int, z : Union[com
     T_size = T.shape[0] # get size of T to identify suitable identity matrix 
     id_T = np.identity(T_size)
     
-    # approximation loop
     v = True
     l = 0
     eigvals_S = np.linalg.eigvalsh(S) 
@@ -637,3 +636,4 @@ def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int
         for z in grid 
         if DistSpec(matrix, n, z, f, fn) + c_n < eps
     ]
+
