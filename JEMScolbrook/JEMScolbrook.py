@@ -638,5 +638,97 @@ def PseudoSpecUB(matrix : Callable[[int, int], complex], eps : Fraction, n : int
         if DistSpec(matrix, n, z, f, fn) + c_n < eps
     ]
 
+# shared type checking for TestSpec and TestPseudospec
+def _validate_TestSpec(n1 : int, n2 : int) -> None:
+    '''
+    Input validation for TestSpec and TestPseudospec. Checks that n_1 and n_2 are non-negative integers. 
+    
+    Not intended to be called directly.
+    '''
+    if not isinstance(n1, int):
+        raise TypeError("n_1 must be an int.")
+    if not isinstance(n2, int):
+        raise TypeError("n_2 must be an int.")
+    if not (n1 >= 0):
+        raise ValueError("We must have n_1 >= 0")
+    if not (n2 >= 0):
+        raise ValueError("We must have n_2 >= 0")
+
+# ALGORITHM 3.1
+def TestSpec(n1 : int, n2 : int, K_n2 : list[float], gamma_n1 : Callable[[complex], float], float_tolerance : float = config.float_tolerance) -> bool:
+    '''
+    Given (n_1, n_2), an approximation K_n2 to a compact set K, an approximation gamma_n1(z) to gamma(z, A), return an approximation to the truth value of K \cap spec(A) \ne emptyset.
+    
+    Validity of approximation depends on the choice of approximation K_n2 and gamma_n1. 
+    
+    Parameters
+    -------------
+    n1 : int 
+        Degree of approximation corresponding to the resolvent gamma(z, A). 
+    n2 : int 
+        Degree of approximation corresponding to the compact set K. 
+    K_n2 : list[float]
+        A finite list of complex numbers approximating K in Hausdorff metric.
+    gamma_n1 : Callable[[complex], float]
+        An approximation to gamma(z, A) 
+    float_tolerance : float 
+        Tolerance applied for floating point error. Defaults to config.float_tolerance.
+    
+    Raises 
+    -------------
+    TypeError
+        If n1 or n2 is not an integer. Propagated from _validate_TestSpec.
+    ValueError
+        If n1 or n2 is negative. 
+    '''
+    _validate_TestSpec(n1, n2)
+    
+    for z in K_n2:
+        if (1 << n2) * gamma_n1(z) + float_tolerance < 1: # note that 1 << n is much cheaper than 2**n for large n. multiply through by 2^(n_2) to avoid comparing small floats.
+            return True
+    
+    return False
+
+# ALGORITHM 3.2
+def TestPseudospec(n1 : int, n2 : int, K_n2 : list[complex], gamma_n1 : Callable[[complex], float], eps : Union[float, Fraction], float_tolerance : float = config.float_tolerance) -> bool:
+    '''
+    Given (n_1, n_2), an approximation K_n2 to a compact set K, an approximation gamma_n1(z) to gamma(z, A), return an approximation to the truth value of K \cap spec_eps(A) \ne \emptyset.
+    
+    Validity of approximation depends on the choice of approximation K_n2 and gamma_n1. 
+    
+    Parameters
+    -------------
+    n1 : int 
+        Degree of approximation corresponding to the resolvent gamma(z, A). 
+    n2 : int 
+        Degree of approximation corresponding to the compact set K. 
+    K_n2 : list[float]
+        A finite list of complex numbers approximating K in Hausdorff metric.
+    gamma_n1 : Callable[[complex], float]
+        An approximation to gamma(z, A) 
+    eps : Union[float, Fraction]
+        The epsilon in the claim K \cap spec_eps(A) \ne \emptyset. 
+    float_tolerance : float 
+        Tolerance applied for floating point error. Defaults to config.float_tolerance.
+    
+    Raises 
+    -------------
+    TypeError
+        If n1 or n2 is not an integer. Propagated from _validate_TestSpec.
+    ValueError
+        If n1 or n2 is negative. 
+    '''
+    _validate_TestSpec(n1, n2)
+    
+    if not isinstance(epsilon, (float, Fraction)):
+        raise TypeError("epsilon should be a float or Fraction") 
+    if eps < 0:
+        raise ValueError("epsilon must be non-negative") 
+    
+    for z in K_n2 
+        if (1 << n_2) * gamma_n1(z) + config.float_tolerance < 1 + eps:
+            return True 
+    
+    return False
 
 
