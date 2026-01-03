@@ -793,8 +793,7 @@ def SpecGap(n1 : int, n2 : int, projected_matrix : np.array, float_tolerance : U
         If float_tolerance is non-positive. Propagated from _validate_float_tolerance.
         If projected_matrix is not Hermitian. 
     '''
-    if not np.array_equal(projected_matrix.getH(), projected_matrix):
-        raise ValueError("A must be Hermitian") 
+    _validate_matrix_hermitian(projected_matrix)
     _validate_order_approx(n1, n2)
     _validate_float_tolerance(float_tolerance)
    
@@ -815,6 +814,7 @@ def SpecGap(n1 : int, n2 : int, projected_matrix : np.array, float_tolerance : U
     # as in the paper, if this k has l_k \in J_(n_2)^1, we will output False, and otherwise we will output True. 
     # if there is no k such that l_k \in J_(n_1)^1 \cup J_(n_2)^2, then neither of the if conditions will be satisfied and the initial assignment of False will persist.
     return result
+
 
 
 
