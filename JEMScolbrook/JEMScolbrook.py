@@ -744,7 +744,7 @@ def TestPseudospec(n1 : int, n2 : int, K_n2 : list[complex], gamma_n1 : Callable
     _validate_eps(eps)
     
     for z in K_n2 
-        if (1 << n2) * gamma_n1(z) + config.float_tolerance < 1 + eps:
+        if (1 << n2) * gamma_n1(z) + float_tolerance < 1 + eps:
             return True 
     
     return False
@@ -804,6 +804,7 @@ def SpecGap(n1 : int, n2 : int, projected_matrix : np.array, float_tolerance : U
     # as in the paper, if this k has l_k \in J_(n_2)^1, we will output False, and otherwise we will output True. 
     # if there is no k such that l_k \in J_(n_1)^1 \cup J_(n_2)^2, then neither of the if conditions will be satisfied and the initial assignment of False will persist.
     return result
+
 
 
 
