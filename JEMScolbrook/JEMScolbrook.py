@@ -106,6 +106,7 @@ class Config:
 
 config = Config() # init config
 logger = logging.getLogger(__name__)
+float_to_Fraction_error = 'Converting float to Fraction. Numerators and denominators will likely be large and non-exact. Recommend pre-processing'
 
 #general helper functions
 
@@ -216,7 +217,7 @@ def _validate_eps(eps : Union[float, Fraction, int]) -> Fraction:
     if isinstance(eps, int):
         return Fraction(eps) # convert int to fraction 
     if isinstance(eps, float):
-        logger.warning("Converting float to Fraction. Numerators and denominators will likely be large and non-exact. Recommend pre-processing")
+        logger.warning(float_to_Fraction_error)
         return Fraction(eps) # convert float to fraction
 
 def _validate_matrix_hermitian(matrix : np.array):
@@ -432,7 +433,7 @@ def DistSpec(matrix : Callable[[int, int], complex], n : int, z : Union[complex,
     '''
     _validate_order_approx(n)
     
-    fn = f(n) if fn is None else fn # pre-compute f(n) in case it is expensive
+    fn = fn if fn else f(n) # pre-compute f(n) in case it is expensive
     
     # check f 
     _validate_f(f, n, fn)
@@ -533,7 +534,6 @@ def generate_grid(n : int) -> list[tuple[Fraction, Fraction]]:
     # input validation 
     _validate_order_approx(n)
     
-    # prepare for loop  
     n2 = n*n # pre-compute n^2 so we don't have to re-compute it every loop
     n4 = n2*n2 # pre-compute n^4 to avoid re-computation
     
@@ -553,8 +553,8 @@ def intersect_grid_with_ball(n : int, rad : Fraction, centre : tuple[Fraction, F
         mesh size for grid
     rad : Fraction 
         radius of ball
-    centre : tuple[Fraction, Fraction]
-        centre of ball 
+    centre : tuple[Union[float, int, Fraction], Union[float, int, Fraction]]
+        centre of ball. Use of floats discouraged, function will try to convert them to an int.
 
     Returns
     -------------
@@ -573,8 +573,28 @@ def intersect_grid_with_ball(n : int, rad : Fraction, centre : tuple[Fraction, F
     
     if rad < 0:
         raise ValueError("rad is negative.")
+
+    if isinstance(centre[0], int):
+        centre[0] = Fraction(centre[0], 1)
     
-    r2 = rad*rad # pre-compute r^2 so it doesn't get re-computed for every w_j in grid. 
+    if isinstance(centre[1], int):
+        centre[1] = Fraction(centre[1], 1)
+    
+    if isinstance(centre[0], float): 
+        logger.warning(float_to_Fraction_error)
+        centre[0] = Fraction(centre[0])
+    
+    if isinstance(centre[1], float):
+        logger.warning(float_to_Fraction_error)
+        centre[1] = Fraction(centre[1])
+    
+    if not isinstance(centre[0], Fraction):
+        raise TypeError("x-coordinate of centre is not a fraction, float or int")
+    
+    if not isinstance(centre[1], Fraction):
+        raise TypeError("y-coordinate of centre is not a fraction, float or int")
+
+    r2 = rad*rad
     return [
         w_j 
         for w_j in grid 
@@ -931,8 +951,8 @@ def SpecGap(n1 : int, n2 : int, projected_matrix : np.array, float_tolerance : U
     
     result = False
     for k in range(2, n1 + 1):
-        trunc = projected_matrix[:k, :k] # compute P_k A P_k
-        eigvals = sorted(np.linalg.eigvalsh(trunc)) 
+        projected_submatrix = projected_matrix[:k, :k] # compute P_k A P_k
+        eigvals = sorted(np.linalg.eigvalsh(projected_submatrix)) 
         gap = eigvals[1] - eigvals[0] # ie. l_k = mu_2^(k) - mu_1^(k)
         # write J_(n_2)^1 = [0, 1/(2n_2)] and J_(n_2)^2 = (1/n_2, inf) as in the paper. 
         if gap*(2*n2) <= 1 + float_tolerance: # ie. l_k \in J_(n_2)^1
