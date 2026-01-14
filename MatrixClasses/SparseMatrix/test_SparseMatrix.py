@@ -1,6 +1,7 @@
 import pytest
 from SparseMatrix import SparseMatrix 
 from DiagonalMatrix import DiagonalMatrix
+from fractions import Fraction
 
 class TestSparseMatrixInit:
     def test_init_zero_matrix(self):
