@@ -2,7 +2,7 @@
 
 from fractions import Fraction
 from collections.abc import Callable
-from math import isqrt, floor, ceil
+from math import isqrt, sqrt, floor, ceil
 from typing import Union
 import numpy as np
 
@@ -107,7 +107,7 @@ config = Config() # init config
 
 #general helper functions
 
-def _generate_matrix(matrix : Callable[[int, int], float], m : int, n : int, z : complex = 0) -> np.array:
+def _generate_matrix(matrix : Callable[[int, int], Union[float, Fraction, complex]], m : int, n : int, z : complex = 0) -> np.array:
     '''
     Method to convert a matrix as a callable into a numpy array by vectorizing the matrix. Cheaper than creating a list and then converting to numpy. 
     
@@ -119,7 +119,7 @@ def _generate_matrix(matrix : Callable[[int, int], float], m : int, n : int, z :
     return output_matrix
 
 # input validators 
-def _validate_f(f : Callable[[int], int], n : int, fn : int = None) -> None:
+def _validate_f(f : Callable[[int], int], n : int, fn : Union[int, None] = None) -> None:
     '''
     Checks whether a function f represents a valid dispersion bound. We check whether f(n) is an integer and whether f(n) >= n + 1. 
     
@@ -135,7 +135,7 @@ def _validate_f(f : Callable[[int], int], n : int, fn : int = None) -> None:
     
     return
 
-def _validate_cn(c : Callable[[int], Union[Fraction, float]], n : int, c_n : Union[Fraction, float] = None) -> Fraction:
+def _validate_cn(c : Callable[[int], Union[Fraction, float]], n : int, c_n : Union[Fraction, float, None] = None) -> Union[Fraction, float]:
     '''
     Checks whether c_n represents a valid quantity such that D_(f, n)(A) <= c_n. 
     
@@ -156,7 +156,7 @@ def _validate_cn(c : Callable[[int], Union[Fraction, float]], n : int, c_n : Uni
         return Fraction(ceil(n*c_n), n)
     
 
-def _validate_float_tolerance(float_tolerance : float[Union, Fraction]) -> None:
+def _validate_float_tolerance(float_tolerance : Union[float, Fraction]) -> None:
     '''
     Checks whether a specified float_tolerance is valid. 
     
@@ -223,7 +223,7 @@ def _validate_matrix_hermitian(matrix : np.array):
     
     Not intended to be called directly.
     '''
-    if not np.array_equal(projected_matrix.getH(), projected_matrix):
+    if not np.array_equal(matrix.getH(), matrix):
         raise ValueError("A must be Hermitian") 
     return
 
@@ -313,7 +313,7 @@ def CompInvg_slow(n : int, y : float, g : Callable[[float], float], max_iter : i
             return Fraction(k, n) # using fraction to avoid floating point errors
 
 # ALGORITHM 1.1
-def CompInvg(n : int, y : float, g : Callable[[float], float], max_iter : int = config.max_iter, init_guess : int = config.init_guess, float_tolerance : float = config.float_tolerance) -> Fraction:
+def CompInvg(n : int, y : Union[float, Fraction], g : Callable[[float], float], max_iter : int = config.max_iter, init_guess : int = config.init_guess, float_tolerance : float = config.float_tolerance) -> Fraction:
     '''
     Approximate g^(-1)(y) using a discrete mesh of size 1/n. Specifically, we find the least k such that g(k/n) > y and hence give an approximation to g^(-1)(y) to precision 1/n. 
     
@@ -321,7 +321,7 @@ def CompInvg(n : int, y : float, g : Callable[[float], float], max_iter : int = 
     -------------
     n : int 
         size of mesh, must satisfy n > 0
-    y : float 
+    y : float or Fraction
         input for which we want to approximate g^(-1)(y)
     g : collections.abc.Callable[[float], float]
         increasing function g : R_+ -> R_+ representing resolvent control. Must satisfy g(0) = 0, g(x) <= x and be monotone increasing. That g(x) <= x or g is monotone is not checked.
@@ -462,7 +462,7 @@ def DistSpec(matrix : Callable[[int, int], complex], n : int, z : Union[complex,
         return Fraction(1, n) 
     
     else:
-        l = math.ceil(n * sqrt(threshold))
+        l = ceil(n * sqrt(threshold))
         return Fraction(l, n)
 
     if l == max_iter:
@@ -585,7 +585,7 @@ def intersect_grid_with_ball(n : int, rad : Fraction, centre : tuple[Fraction, F
     ]
 
 # ALGORITHM 1.3
-def CompSpecUB_Gamma(matrix : Callable[[int, int], complex], n : int, f : Callable[[int], int], c : Callable[[int], Fraction], g : Union[Callable[[float], float], None] = None, fn : int = None, c_n : Fraction = None) -> list[tuple[Fraction, Fraction]]:
+def CompSpecUB_Gamma(matrix : Callable[[int, int], complex], n : int, f : Callable[[int], int], c : Callable[[int], Fraction], g : Union[Callable[[float], float], None] = None, fn : int = None, c_n : Fraction = None, float_tolerance : float = config.float_tolerance) -> list[tuple[Fraction, Fraction]]:
     '''
     Computes an approximation to the spectrum of an operator A which has dispersion bounded by f and resolvent bounded by g. 
     
@@ -609,7 +609,9 @@ def CompSpecUB_Gamma(matrix : Callable[[int, int], complex], n : int, f : Callab
         allows for the value of f(n) to be pre-loaded, for example if this method is to be called in a loop and computing f is expensive. It is never checked that fn = f(n). 
     c_n : Fraction 
         allows for the value of c_n to be pre-loaded, for example if this method is to be called in a loop and computing c is expensive. It is never checked whether c_n = c(n).
-    
+    float_tolerance : float 
+        Tolerance applied for floating point error. Defaults to config.float_tolerance.
+        
     Returns
     -------------
     list[tuple[Fraction, Fraction]]
@@ -638,9 +640,9 @@ def CompSpecUB_Gamma(matrix : Callable[[int, int], complex], n : int, f : Callab
     for z in grid:
         reset_gamma = False
         Fz = DistSpec(matrix, n, z, f, fn)
-        W_z = []
+        W_z = [] 
         
-        rad = CompInvg(n, Fz, g) if g else Fraction(ceil(n*(y + float_tolerance)), n)
+        rad = CompInvg(n, Fz, g, float_tolerance = float_tolerance) if g else Fraction(ceil(n*(Fz + float_tolerance)), n)
         
         if Fz*(z[0]*z[0] + z[1]*z[1] + 1) <= 1:
             for w_j in intersect_grid_with_ball(rad, z):
@@ -840,7 +842,7 @@ def TestSpec(n1 : int, n2 : int, K_n2 : list[float], gamma_n1 : Callable[[comple
         If n1 or n2 is negative. Propagated from _validate_order_approx_2.
         If float_tolerance is non-positive. Propagated from _validate_float_tolerance.
     '''
-    _validate_TestSpec(n1, n2)
+    _validate_order_approx_2(n1, n2)
     _validate_float_tolerance(float_tolerance)
     
     for z in K_n2:
