@@ -368,7 +368,7 @@ class SparseMatrix:
         return self.tolerance 
     
     def set_tolerance(self, tolerance : Union[float, Fraction]) -> None:
-         '''
+        '''
         Changes tolerance of matrix. Basic setter.
 
         Parameters
