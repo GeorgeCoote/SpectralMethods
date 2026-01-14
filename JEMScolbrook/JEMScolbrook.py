@@ -966,12 +966,59 @@ def SpecGap(n1 : int, n2 : int, projected_matrix : np.array, float_tolerance : U
 
 # ALGORITHM 5
 
-def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Callable[[int], int], f_vals : dict[int, int] = None, projected_matrix : np.array = None, Gamma : list[list[tuple[Fraction, Fraction]]] = None, Err : list[Callable[[complex], Fraction]] = None, float_tolerance : Union[float, Fraction] = config.float_tolerance) -> int:
-    '''DOCSTRING MISSING'''
+def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Callable[[int], int], Gamma : list[list[tuple[Fraction, Fraction]]], Err : list[Callable[[complex], Fraction]] , f_vals : dict[int, int] = None, projected_matrix : np.array = None, float_tolerance : Union[float, Fraction] = config.float_tolerance) -> int:
+    '''
+    Gives an approximation to SpecClass(A), with A a Hermitian matrix based of approximations to Spec(A) and error bounds.
+
+    SpecClass(A) is defined as follows:
+    1: infimum of spec(A) is an isolated eigenvalue of multiplicity 1
+    2: infimum of spec(A) is an isolated eigenvalue of multiplicity > 1
+    3: infimum of spec(A) is an isolated spectral point which is isolated in the spectrum.
+    4: infimum of spec(A) is not isolated in the spectrum.
+
+    Parameters
+    -------------
+    n1 : int 
+        The first order of the approximation. 
+    n2 : int 
+        The second order of the approximation. 
+    matrix : Callable[[int, int], complex]
+        function N^2 -> C representing a Hermitian matrix.
+    f : Callable[[int], int]
+        function N -> N representing dispersion bound for A.
+    Gamma : list[list[tuple[Fraction, Fraction]]]
+        A list of n1 approximations Gamma_1, ..., Gamma_n1 to Spec(A) as list of complex numbers (representd by tuples of Fractions)
+    Err : list[Callable[[complex], Fraction]]
+        A list of n1 approximations to dist(z, spec(A)), giving the error in approximating the spectrum by Gamma_n.
+    f_vals : dict[int, int]
+        A dictionary of some values for f, allowing the pre-computation of expensive function calls. Missing values are computed individually. 
+        It is not checked whether the pre-computed values are correct.
+    projected_matrix : np.array 
+        Allows for the pre-computation of the first n1 x n1 submatrix of matrix, in case calls to matrix are expensive.
+    float_tolerance : Union[float, Fraction]
+        Error margin for floating point calculations. Defaults to module default (default 1e-10)
+    
+    Returns
+    -------------
+    int
+        1, 2, 3 or 4 representing an approximation to SpecClass(A) defined above. 
+    
+    Raises
+    -------------
+    TypeError
+        If n1 or n2 is not an integer. Propagated from _validate_order_approx_2.
+        If float_tolerance is not a float or Fraction. Propagated from _validate_float_tolerance.
+    ValueError
+        If projected_matrix is not Hermitian. Propagated from _validate_matrix_hermitian.
+        If n1 or n2 is negative. Propagated from _validate_order_approx_2.
+        If float_tolerance is non-positive. Propagated from _validate_float_tolerance.
+        If Gamma does not have size n1.
+        If Err does not have size n1. 
+    '''
     if not Gamma or len(Gamma) != n1:
-        raise ValueError(f"List specifying pre-computed Gamma must be of size n1. Input has size {len(Gamma)}")
+        raise ValueError(f"List specifying Gamma must be of size n1. Input has size {len(Gamma)}")
     if len(Err) != n1:
-        raise ValueError(f"List specifying pre-computed errors must be of size n1. Input has size {len(Err)}") 
+        raise ValueError(f"List specifying errors must be of size n1. Input has size {len(Err)}") 
     if np.shape(projected_matrix) != (n1, n1):
         raise ValueError(f"Pre-computed projected_matrix does not have size n1 x n1. Shape is {np.shape(projected_matrix)}")
     
