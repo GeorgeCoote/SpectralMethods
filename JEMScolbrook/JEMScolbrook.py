@@ -1031,40 +1031,60 @@ def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Ca
     for j in range(1, n1 + 1): # populate missing values for f
         if j not in f_vals:
             to_check = f(j)
-            _validate_f(f, n, to_check)
+            _validate_f(f, j, to_check)
             f_vals[j] = to_check
     
     
     projected_matrix = projected_matrix if projected_matrix else _generate_matrix(matrix, n1, n1, 0)
     _validate_matrix_hermitian(projected_matrix) # input matrix must be Hermitian 
     
+    # We denote the jth eigenvalue (zero indexed) of the nth truncation by mu_j^(n)
+    # We write l_n^j = mu_j^(n) - mu_0^(n)
+    # First we check whether to return 1. This involves checking the first spectral gap of each of the first n1 truncations.
+    # That is, we check l_n^1 for each n.
+
     result_1 = False
     cached_eigvals = []
     
-    for n in range(n1 + 1):
-        trunc = projected_matrix[:n, :n]
+    for k in range(2, n1 + 1):
+        trunc = projected_matrix[:k, :k]
         eigvals = sorted(np.linalg.eigvalsh(trunc)) 
-        cached_eigvals.append(eigvals)
+        cached_eigvals.append(eigvals) # we cache the eigenvalues of each truncation since they will appear later
         
         gap = eigvals[1] - eigvals[0]
-        if gap*(n2) > 1 + float_tolerance: 
-            result = True
-        if gap*(2*n2) <= 1 + float_tolerance:
-            result = False
-    
+
+
+        if gap*(n2) > 1 + float_tolerance: # ie. l_k^1 \in J_2
+            result_1 = True
+        if gap*(2*n2) <= 1 + float_tolerance: # ie. l_k^1 \in J_1
+            result_1 = False 
+        
+    # exiting the loop, there are two possibilities
+    # 1. neither branch has triggered and k_(n2, n1) (the greatest k such that l_k^1 \in J_1 \cup J_2) does not exist.
+    # 2. k_(n2, n1) exists and the bool in result_1 reflects whether l_(k_(n2, n1)) is in J_1 or J_2. 
+    # hence if result_1 is true, it is the case that k_(n2, n1) exists and l_(k_(n2, n1))^1 \in J_2, so we return 1. 
+
     if result_1:
         return 1
+    
+    # we now check all the subsequent spectral gaps. The purpose of this loop is to check whether the 0th eigenvalue has multiplicity but remains isolated.
     
     result_2 = False 
     
     for j in range(1, n2 + 1):
-        for eigvals in cached_eigvals:
-            if eigvals[j + 1] - eigvals[j] > 1 + float_tolerance:
+        for eigvals in cached_eigvals: # run through the cached eigenvalue
+            gap = eigvals[j + 1] - eigvals[0] # compute l_n^j for the current value of n
+            if gap*(n2) > 1 + float_tolerance:
                 result_2 = True 
-            if eigvals[j + 1] - eigvals[j] < 1 + float_tolerance:
+            if gap*(2*n2) < 1 + float_tolerance:
                 result_2 = False 
-        if result_2:
+        # exiting, there are two possibilities.
+        # 1. neither branch has triggered and k_(n2, n1)^j does not exist. 
+        # 2. k_(n2, n1)^j exists and the bool in result_2 reflects whether l_(k_(n2, n1)) is in J_1 or J_2.
+        if result_2: # early return if we find k_(n2, n1)^j with l_(k_(n2, n1)^j)^j \in J_2
             return 2
+    
+    # remains to compute b_(n2, n1) and check whether it is >= 1 + float_tol. 
     
     b = float('inf')
     for k in range(1, n1 + 1):
