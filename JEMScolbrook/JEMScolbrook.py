@@ -5,6 +5,7 @@ from collections.abc import Callable
 from math import isqrt, sqrt, floor, ceil
 from typing import Union
 import numpy as np
+import scipy
 import logging
 
 '''
@@ -110,15 +111,15 @@ float_to_Fraction_error = 'Converting float to Fraction. Numerators and denomina
 
 #general helper functions
 
-def _generate_matrix(matrix : Callable[[int, int], Union[float, Fraction, complex]], m : int, n : int, z : complex = 0) -> np.array:
+def _generate_matrix(matrix : Callable[[int, int], Union[float, Fraction, complex]], upper_m : int, upper_n : int, lower_m : int = 0, lower_n : int = 0, z : complex = 0) -> np.array:
     '''
     Method to convert a matrix as a callable into a numpy array by vectorizing the matrix. Cheaper than creating a list and then converting to numpy. 
     
     Not intended to be called directly. 
     '''
     vectorized_matrix = np.vectorize(matrix) 
-    i_grid, j_grid = np.meshgrid(np.arange(m), np.arange(n), indexing='ij')
-    output_matrix = vectorized_matrix(i_grid, j_grid) - z*np.eye(m, n)
+    i_grid, j_grid = np.meshgrid(np.arange(lower_m, upper_m), np.arange(lower_n, upper_n), indexing='ij')
+    output_matrix = vectorized_matrix(i_grid, j_grid) - z*np.eye(upper_m - lower_m, upper_n - lower_n)
     return output_matrix
 
 # input validators 
@@ -254,7 +255,7 @@ def _find_window_compInvg(n : int, y : float, g : Callable[[float], float], init
     '''
     j = init_guess
     
-    while g(j + 1) <= y + float_tolerance and j < max_iter:
+    while g(j + 1) < y + float_tolerance and j < max_iter:
         j += 1
     
     if j == max_iter:
@@ -445,11 +446,7 @@ def DistSpec(matrix : Callable[[int, int], complex], n : int, z : Union[complex,
     B = _generate_matrix(matrix, fn, n, z) # (A - z I)(1 : f(n))(1 : n)
     C = np.conjugate(_generate_matrix(matrix, n, fn, z)).T # (A - z I)*(1 : f(n))(1 : n), same as ((A - z I)(1 : n)(1 : f(n)))*
     S = np.matmul(np.conjugate(B).T, B) # S = B* mul B
-    S_size = S.shape[0] # get size of S to identify suitable identity matrix 
-    id_S = np.identity(S_size)
     T = np.matmul(np.conjugate(C).T, C) # T = C* mul C
-    T_size = T.shape[0] # get size of T to identify suitable identity matrix 
-    id_T = np.identity(T_size)
     
     eigvals_S = np.linalg.eigvalsh(S) 
     eigvals_T = np.linalg.eigvalsh(T)
@@ -1053,7 +1050,6 @@ def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Ca
         
         gap = eigvals[1] - eigvals[0]
 
-
         if gap*(n2) > 1 + float_tolerance: # ie. l_k^1 \in J_2
             result_1 = True
         if gap*(2*n2) <= 1 + float_tolerance: # ie. l_k^1 \in J_1
@@ -1095,3 +1091,47 @@ def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Ca
         return 3
     else:
         return 4
+
+# algo for essential spectra
+
+def kappa(matrix : Callable[[int, int], complex], n : int, m : int, z : tuple[Fraction, Fraction], f : Callable[[int], int], fn : int = None, B : Union[np.array, None] = None, C : Union[np.array, None] = None, float_tolerance : float = config.float_tolerance) -> Fraction:
+    '''DOCSTRING MISSING'''
+    # TODO: duplicates logic in CompSpecUB almost exactly, may review in future. 
+    _validate_order_approx(n)
+    
+    fn = fn if fn else f(n) # pre-compute f(n) in case it is expensive
+    
+    # check f 
+    _validate_f(f, n, fn)
+    
+    z = complex(z[0], z[1])
+        
+    # prepare matrices 
+    B = B if B else _generate_matrix(matrix, lower_m = 0, upper_m = fn, lower_n = m, upper_n = n, z = 0) # P_(f(n)) A Q_m P_n
+    C = C if C else _generate_matrix(matrix, lower_n = 0, upper_n = fn, lower_m = m, upper_m = n, z = 0) # P_(f(n)) A* Q_m P_n
+    B = np.conjugate(B - z*np.eye(fn, n - m)) # P_(f(n)) (A - z I) Q_m P_n
+    C = np.conjugate(C - z*np.eye(n - m, fn)) # P_(f(n)) (A - z I)* Q_m P_n
+
+    S = np.matmul(np.conjugate(B).T, B) # S = B* mul B
+    T = np.matmul(np.conjugate(C).T, C) # T = C* mul C
+    
+    eigvals_S = np.linalg.eigvalsh(S) 
+    eigvals_T = np.linalg.eigvalsh(T)
+    
+    min_eigvals_S = min(eigvals_S)
+    min_eigvals_T = min(eigvals_T)
+    
+    min_eigval = min(min_eigvals_S, min_eigvals_T)
+    
+    threshold = min_eigval - float_tolerance 
+    
+    if threshold <= 0:
+        return Fraction(1, n) 
+    
+    else:
+        l = ceil(n * sqrt(threshold))
+        return Fraction(l, n)
+
+def EssSpec(matrix : Callable[[int, int], complex], n : int, f : Callable[[int], int], fn : Union[int, None] = None):
+    '''DOCSTRING MISSING'''
+    pass
