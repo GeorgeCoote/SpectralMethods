@@ -986,7 +986,8 @@ def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Ca
     Gamma : list[list[tuple[Fraction, Fraction]]]
         A list of n1 approximations Gamma_1, ..., Gamma_n1 to Spec(A) as list of complex numbers (representd by tuples of Fractions)
     Err : list[Callable[[complex], Fraction]]
-        A list of n1 approximations to dist(z, spec(A)), giving the error in approximating the spectrum by Gamma_n.
+        A list of n1 approximations to dist(z, spec(A)), giving the error in approximating the spectrum by Gamma_n. 
+        Only required to be defined on Gamma_n. 
     f_vals : dict[int, int]
         A dictionary of some values for f, allowing the pre-computation of expensive function calls. Missing values are computed individually. 
         It is not checked whether the pre-computed values are correct.
@@ -1105,7 +1106,21 @@ def kappa(matrix : Callable[[int, int], complex], n : int, m : int, z : tuple[Fr
     _validate_f(f, n, fn)
     
     z = complex(z[0], z[1])
-        
+
+    if B:
+        if not isinstance(B, np.array):
+            raise TypeError("B must be of np.array type.")
+
+        if np.shape(B) != (fn, n - m):
+            raise ValueError(f"Shape of pre-loaded B must be {(fn, n - m)}, not {np.shape(B)}.")
+    
+    if C:
+        if not isinstance(C, np.array):
+            raise TypeError("C must be of np.array type.")
+
+        if np.shape(C) != (n - m, fn):
+            raise ValueError(f"Shape of pre-loaded C must be {(n - m, fn)}, not {np.shape(C)}.")
+
     # prepare matrices 
     B = B if B else _generate_matrix(matrix, lower_m = 0, upper_m = fn, lower_n = m, upper_n = n, z = 0) # P_(f(n)) A Q_m P_n
     C = C if C else _generate_matrix(matrix, lower_n = 0, upper_n = fn, lower_m = m, upper_m = n, z = 0) # P_(f(n)) A* Q_m P_n
@@ -1132,6 +1147,29 @@ def kappa(matrix : Callable[[int, int], complex], n : int, m : int, z : tuple[Fr
         l = ceil(n * sqrt(threshold))
         return Fraction(l, n)
 
-def EssSpec(matrix : Callable[[int, int], complex], n : int, f : Callable[[int], int], fn : Union[int, None] = None):
+def EssSpec(matrix : Callable[[int, int], complex], n : int, m : int, f : Callable[[int], int], fn : Union[int, None] = None):
     '''DOCSTRING MISSING'''
-    pass
+    _validate_order_approx_2(n, m)
+
+    grid = generate_grid(n)
+    fn = fn if fn else f(n)
+    _validate_f(f, n, fn)
+
+    result = []
+    B = _generate_matrix(matrix, lower_m = 0, upper_m = fn, lower_n = m, upper_n = n, z = 0)
+    C = _generate_matrix(matrix, lower_n = 0, upper_n = fn, lower_m = m, upper_m = n, z = 0)
+
+    kappa_abrev = lambda z : kappa(matrix, n, m, z, f, fn, B, C) # for brevity
+
+    for z in grid:
+        if kappa_abrev(z)*m <= 1:
+            result.append(z)
+    
+    return result
+
+def balls_intersect(centre1 : Union[tuple[Fraction, Fraction]], centre2 : Union[tuple[Fraction, Fraction], complex], rad1 : Union[float, Fraction], rad2 : Union[float, Fraction]) -> bool:
+    '''DOCSTRING MISSING'''
+    distance_squared = (centre1[0] - centre2[0])*(centre1[0] - centre2[0]) + (centre1[1] - centre2[1])*(centre1[1] - centre2[1])
+    squared_sum_of_radii = (rad1 + rad2)*(rad1 + rad2)
+    return distance_squared <= squared_sum_of_radii 
+
