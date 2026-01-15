@@ -1084,7 +1084,7 @@ def SpecClass(n1 : int, n2 : int, matrix : Callable[[int, int], complex], f : Ca
         if result_2: # early return if we find k_(n2, n1)^j with l_(k_(n2, n1)^j)^j \in J_2
             return 2
     
-    # remains to compute b_(n2, n1) and check whether it is >= 1 + float_tol. 
+    # remains to compute b_(n2, n1) and check whether b_(n2, n1) >= 1/n2 up to tol. 
     
     b = float('inf')
     for k in range(1, n1 + 1):
